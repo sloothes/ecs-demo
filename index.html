@@ -2,122 +2,905 @@
 <html lang="en">
 	<head>
 
-		<title>ECS (CES.js) demo(1)</title>
+		<title>ECS Demo (Rectangle Eater)</title>
 
 		<meta charset="utf-8">
 		<meta name="generator" content="Three.js Editor">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-
-		<link rel="stylesheet" href="/css/joystick.css">
-		<link rel="stylesheet" href="/css/bootstrap.min.css">
-		<link rel="stylesheet" href="/css/bootbox-dialoges.css">
-
-		<script src="/js/watch.js"></script>
-		<script src="/js/jquery.min.js"></script> 
-		<script src="/js/system.min.js"></script>
-		<script src="/js/signals.min.js"></script>
-		<script src="/js/inflate.min.js"></script>
-		<script src="/js/zangodb.min.js"></script>
-		<script src="/js/bootstrap.min.js"></script>
-		<script src="/js/hold-event.min.js"></script>
+		<link rel="stylesheet" href="http://fonts.googleapis.com/css?family=VT323">
 
 		<style>
 
-			body {
-				font-family: sans-serif;
-				font-size: 13px;
-				background-color: #0000;
-				margin: 0px;
-				overflow: hidden;
+			body, html {
+				background: RGBA(151, 135, 110, 0.2);
+				bottom: 0;
+				font-family: 'VT323', monospace;
+				left: 0;
+				margin: 0;
+				padding: 0;
+				position: absolute;
+				right: 0;
+				top: 0;
 			}
 
-			#loading-bar {
-				width:100%;
-				height:100%;
-				top:0; left:0;
-				position:fixed;
-				display:flex;
-				align-items:center;
-				justify-content:center;
+			h1 { font-size: 7em; }
+			h2 { font-size: 5em; }
+			h3 { font-size: 3em; }
+			a {
+				color: #336699;
 			}
 
-			.middle > * {
-				top:0; 
-				left:0;
-				right:0;
-				bottom:0;
-				margin:auto;"
-				position:absolute;
+			canvas {
+				background: #ffffff;
+				border: 5px solid #343434;
+				border-radius: 3px;
+				cursor: none;
+				display: table;
+				margin: 0 auto;
+				transition: all 0.2s;
+				position: relative;
+				width: 600px;
+				height: 400px;
 			}
 
-			#joystick1 {
-				right: calc(40px + 370px);
-			}
-			
-			#jumpButton {
-				right: calc(105px + 370px);
-			}
-
-			.btn-matcap,
-			.btn-terrain {
-				padding:0;
-				float:left;
-				width:55px;
-				height:55px;
-				border:1px solid;
-				border-radius:4px;
-				margin-right:4px;
-				margin-bottom:4px;
-				display:inline-block;
+			@media only screen and (max-width : 800px) { 
+				canvas {
+					width: 300px;
+					height: 200px;
+				}
 			}
 
-			.btn-matcap + .btn-matcap,
-			.btn-terrain + .btn-terrain {
-				margin-right:4px;
+			canvas.game-over {
+				background: #181818;
 			}
+			canvas.badHit {
+				background: rgba(255,0,0,0.4);
+			}
+			canvas.goodHit {
+				background: rgba(0,255,0,0.4);
+			}
+
+			#score {
+				font-size: 6em;
+			}
+
+			#game-over {
+				bottom: 80px;
+				color: #ffffff;
+				left: 0;
+				position: fixed;
+				opacity: 1;
+				text-align: center;
+				text-shadow: 0 0 28px #000000, 1px 1px 28px #000000;
+				transition: all 0.3s;
+				right: 0;
+				top: 0;
+				visibility: visible;
+			}
+			#game-over.hidden {
+				opacity: 0;
+				visibility: hidden;
+			}
+			#game-over h1,#game-over h2 {
+				text-shadow: 1px 1px 0 #888, 2px 2px 0 #888, 3px 3px 0 #888;
+			}
+			#game-over h1 {
+				margin-top: 1.2em;
+			}
+			#game-over h2 {
+				margin-bottom: 0.1em;
+			}
+			#game-over h3 {
+				margin: 0;
+				padding: 0;
+			}
+			#game-over a {
+				border-bottom: 1px solid #22ff22;
+				color: #22ff22;
+				text-shadow:  1px 1px 0 #000000, 2px 2px 0 #000000, 3px 3px 0 #000000;
+				text-decoration: none;
+			}
+
+
+
+			.center { 
+				text-align: center;
+			}
+			.description {
+				padding-top: 1em;
+			}
+			.description h2 {
+				margin: 0 0 0.1em 0;
+				padding: 0;
+			}
+			.description p {
+				padding: 0;
+				margin: 0;
+			}
+			.italic { font-style: italic; }
 
 		</style>
 	</head>
 
 	<body ontouchstart="">
 
-		<script src="/ecs-demo/js/ces-browser.js"></script>
-<!--
-		<script src="/rlc/js/three.js"></script>
-		<script src="/rlc/js/TabUI.js"></script>
-		<script src="/rlc/js/MeshWalk.js"></script>
-		<script src="/rlc/js/UVsDebug.js"></script>
-		<script src="/rlc/js/FBXLoader.js"></script>
-		<script src="/rlc/js/VirtualInput.js"></script>
-		<script src="/rlc/js/EditorControls.js"></script>
--->
-		<!--script src="/rlc/js/camera-controls.js"></script -->
-<!--
-		<script src="/rlc/js/SubdivisionModifier.js"></script>
-		<script src="/rlc/js/three-pathfinding.umd.js"></script>
-		<script src="/threejs/r96/examples/js/loaders/GLTFLoader.js"></script>
-		<script src="/threejs/r96/examples/js/exporters/GLTFExporter.js"></script>
-		<script src="/threejs/r96/examples/js/exporters/STLExporter.js"></script>
-		<script src="/threejs/r96/examples/js/exporters/OBJExporter.js"></script>
-		<script src="/threejs/r96/examples/js/exporters/ColladaExporter.js"></script>
--->
+		<div id="score" class="center">0</div>
+
+		<canvas id="game-canvas" width=600 height=400></canvas>
+
+		<div id="game-over" class="hidden"> 
+			<h1>Game Over</h1>
+			<h2>Final Score:<span id='final-score'>0</span></h2>
+			<h3><a href="javascript:window.location=window.location;">Retry</a></h3>
+		</div>
+
+		<div class="description center">
+			<h2>Rectangle Eater</h2>
+			<p>Big guys hurt. Small guys help.</p>
+			<br />
+			<br />
+			<p class='italic'>
+				This is a hacked together demonstration of 
+				<a href='http://vasir.net/blog/game-development/how-to-build-entity-component-system-in-javascript' target='blank'>Entity Component System</a> 
+				by <a href='http://github.com/enoex' target='blank'>@enoex</a>.
+			</p>
+		</div>
+
+		<script src="/ecs-demo/js/hammer.js"></script>
+		<!-- script src="/ecs-demo/js/ces-browser.js"></script -->
+
 		<script>
 
-			var debugMode = true; // important!
+		// For tutorial purposes, we'll set up a global 
+		// object containing references to all objects.
 
-			Number.prototype.format = function (){
-				return this.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,");
+			window.ECS = {
+				Components: {},
+				systems: {},
+				entities: [],
+				game: {},
+				score: 0
+			};
+
+		// Canvas functionality (NOT ECS specific).
+		// For the demo, just grab a reference to the canvas.
+		// Some systems (e.g., rendering) need to know about the canvas. 
+		// We could pass in a reference to it or store it's state globally like this:
+
+			ECS.$canvas = document.getElementById("game-canvas");
+			ECS.context = ECS.$canvas.getContext("2d");
+			ECS.$score = document.getElementById("score");
+
+
+		</script>
+
+		<script>
+
+		//	game: http://erikhazzard.github.io/RectangleEater/
+		//	source: https://github.com/erikhazzard/RectangleEater/
+		//	article: http://vasir.net/blog/game-development/how-to-build-entity-component-system-in-javascript
+
+			/* =========================================================================
+			 *
+			 * Entity.js
+			 *  Definition of our "Entity". Abstractly, an entity is basically an ID. 
+			 *  Here we implement an entity as a container of data (container of components)
+			 *
+			 * ========================================================================= */
+
+			ECS.Entity = function Entity(){
+			// Generate a pseudo random ID.
+				this.id = (+new Date()).toString(16) + 
+					(Math.random() * 100000000 | 0).toString(16) +
+					ECS.Entity.prototype._count;
+
+			// increment counter.
+				ECS.Entity.prototype._count++;
+
+			// The component data will live in this object.
+				this.components = {};
+
+				return this;
+			};
+
+		// keep track of entities created.
+			ECS.Entity.prototype._count = 0;
+
+			ECS.Entity.prototype.addComponent = function addComponent ( component ){
+			// Add component data to the entity.
+				this.components[component.name] = component;
+				return this;
+			};
+
+			ECS.Entity.prototype.removeComponent = function removeComponent ( componentName ){
+			// Remove component data by removing the reference to it.
+			// Allows either a component function or a string of a component name to be passed in.
+				var name = componentName; // assume a string was passed in
+
+				if(typeof componentName === 'function'){ 
+				// get the name from the prototype of the passed component function.
+					name = componentName.prototype.name;
+				}
+
+				delete this.components[name];
+				return this;
+			};
+
+			ECS.Entity.prototype.print = function print () {
+			// Function to print / log information about the entity.
+				console.log(JSON.stringify(this, null, 4));
+				return this;
 			};
 
 		</script>
 
 		<script>
 
+			/* =========================================================================
+			 *
+			 * Components.js
+			 *  This contains all components for the tutorial 
+			 *  (ideally, components would each live in their own module)
+			 *
+			 *  Components are just data. 
+			 *
+			 * ========================================================================= */
+
+		// Appearance.
+
+			ECS.Components.Appearance = function ComponentAppearance ( params ){
+
+			// Appearance specifies data for color and size.
+				params = params || {};
+
+				this.colors = params.colors;
+				if (!this.colors){
+				// generate random color if not passed in (get 6 random hex values).
+					this.colors = {
+						r: 0,
+						g: 100,
+						b: 150
+					};
+				}
+
+				this.size = params.size || (1 + (Math.random() * 30 | 0));
+
+				return this;
+			};
+
+			ECS.Components.Appearance.prototype.name = 'appearance';
+
+		// Health.
+
+			ECS.Components.Health = function ComponentHealth ( value ){
+				value = value || 20;
+				this.value = value;
+
+				return this;
+			};
+
+			ECS.Components.Health.prototype.name = 'health';
+
+		// Position.
+
+			ECS.Components.Position = function ComponentPosition ( params ){
+				params = params || {};
+
+				// Generate random values if not passed in
+				// NOTE: For the tutorial we're coupling the random values to the canvas'
+				// width / height, but ideally this would be decoupled (the component should
+				// not need to know the canvas's dimensions)
+				this.x = params.x || 20 + (Math.random() * (ECS.$canvas.width - 20) | 0);
+				this.y = params.y || 20 + (Math.random() * (ECS.$canvas.height - 20) | 0);
+
+				return this;
+			};
+
+			ECS.Components.Position.prototype.name = 'position';
+
+		// playerControlled.
+
+			ECS.Components.PlayerControlled = function ComponentPlayerControlled ( params ){
+				this.pc = true;
+				return this;
+			};
+
+			ECS.Components.PlayerControlled.prototype.name = 'playerControlled';
+
+		// Collision.
+
+			ECS.Components.Collision = function ComponentCollision ( params ){
+				this.collides = true;
+				return this;
+			};
+
+			ECS.Components.Collision.prototype.name = 'collision';
+
+		</script>
+
+		<script>
+
+			/* =========================================================================
+			 *
+			 * Assemblages.js
+			 *  Contains assemblages. Assemblages are essentially entity "templates"
+			 *
+			 * ========================================================================= */
+
+			ECS.Assemblages = {
+
+			// Each assemblage creates an entity then returns it. The entity can 
+			// then have components added or removed - this is just like a helper
+			// factory to create objects which can still be modified.
+
+				CollisionRect: function CollisionRect(){
+				// Basic collision rect.
+					var entity = new ECS.Entity();
+					entity.addComponent( new ECS.Components.Appearance());
+					entity.addComponent( new ECS.Components.Position());
+					entity.addComponent( new ECS.Components.Collision());
+					return entity;
+				}
+
+			};
+
+		</script>
+
+		<script>
+
+			/* =========================================================================
+			 *
+			 * decay.js
+			 *  This system "decays" entities that have a health component. Each tick
+			 *  decreases the size and health slightly
+			 *
+			 *  This is where a lot of the core gameplay experience comes from. Too slow,
+			 *  the game is too easy. If it decays to fast, the game isn't so fun.
+			 *
+			 * ========================================================================= */
+
+			// Setup the system
+
+			ECS.systems.decay = function systemDecay ( entities ) {
+				// Here, we've implemented systems as functions which take in an array of
+				// entities. An optimization would be to have some layer which only 
+				// feeds in relevant entities to the system, but for demo purposes we'll
+				// assume all entities are passed in and iterate over them.
+				var curEntity; 
+
+				// iterate over all entities
+				for( var entityId in entities ){
+					curEntity = entities[entityId];
+
+					// First, check if the entity is dead
+					if(curEntity.components.playerControlled){
+						if(curEntity.components.health.value < 0){
+							// Dead! End game if player controlled
+							ECS.game.endGame();
+							return false;
+						}
+					}
+
+					// Only run logic if entity has relevant components
+					if( curEntity.components.health ){
+
+						// Decrease health depending on current health
+						// --------------------------
+						// Here's where we configure how fun the game is
+						if(curEntity.components.health.value < 0.7){
+							curEntity.components.health.value -= 0.01;
+
+						} else if(curEntity.components.health.value < 2){
+							curEntity.components.health.value -= 0.03;
+
+						} else if(curEntity.components.health.value < 10){
+							curEntity.components.health.value -= 0.07;
+
+						} else if(curEntity.components.health.value < 20){
+							curEntity.components.health.value -= 0.15;
+						} else {
+							// If the square is huge, it should very quickly decay
+							curEntity.components.health.value -= 1;
+						}
+
+						// Check for alive / dead
+						// --------------------------
+						if(curEntity.components.health.value >= 0){
+
+							// Set style based on other components too - player controlled 
+							// entity should be style differently based on their health
+							// Update appearance based on health
+							// NOTE: Even though we set appearance properties here, they
+							// don't get rendered here - they get rendered in the render
+							// system
+							if(curEntity.components.playerControlled){ 
+								if(curEntity.components.health.value > 10){
+									curEntity.components.appearance.colors.r = 50;
+									curEntity.components.appearance.colors.g = 255;
+									curEntity.components.appearance.colors.b = 50;
+								} else {
+									curEntity.components.appearance.colors.r = 255;
+									curEntity.components.appearance.colors.g = 50;
+									curEntity.components.appearance.colors.b = 50;
+								} 
+							}
+
+							// Entity is still ALIVE
+							if(curEntity.components.appearance.size){
+								curEntity.components.appearance.size = curEntity.components.health.value;
+							}
+
+						} else {
+
+							//Entity is DEAD
+							if(curEntity.components.playerControlled){
+
+								// Dead! End game if player controlled
+								ECS.game.endGame();
+							} else {
+								// otherwise, remove the entity
+								delete entities[entityId];
+							}
+						}
+					}
+				}
+			};
+
+		</script>
+
+		<script>
+
+			/* =========================================================================
+			 *
+			 * userInput.js
+			 *  This script contains the game logic acts as a controller for the Entity 
+			 *  Component System
+			 *
+			 * ========================================================================= */
+
+			// NOTE: In a real system, this kind of initialization stuff could happen as
+			// a method on the system, and the system could expose a .tick function.
+			// For purposes of a tutorial, we'll just manually setup related system 
+			// functionality here
+
+			// start it off screen
+			var mousePosition = {x:-100, y: -100};
+
+		// Setup mouse handling.
+
+			function getMousePosition(evt) {
+				var rect = ECS.$canvas.getBoundingClientRect();
+				return { x: evt.clientX - rect.left, y: evt.clientY - rect.top };
+			}
+
+			ECS.$canvas.addEventListener('mousemove', function(evt) {
+				// update the mouse position when moved
+				mousePosition = getMousePosition(evt);
+			}, false);
 
 
+		// Setup the system.
+
+			ECS.systems.userInput = function systemUserInput ( entities ) {
+				// Here, we've implemented systems as functions which take in an array of
+				// entities. An optimization would be to have some layer which only 
+				// feeds in relevant entities to the system, but for demo purposes we'll
+				// assume all entities are passed in and iterate over them.
+				var curEntity; 
+
+				// iterate over all entities
+				for( var entityId in entities ){
+					curEntity = entities[entityId];
+
+					// Only run logic if entity has relevant components
+					if( curEntity.components.playerControlled ){
+						// We can change component data based on input, which cause other
+						// systems (e.g., rendering) to be affected
+						curEntity.components.position.x = mousePosition.x;
+						curEntity.components.position.y = mousePosition.y;
+					}
+				}
+			};
+
+		</script>
+
+		<script>
+
+			/* =========================================================================
+			 *
+			 * collision.js
+			 *   This system checks to see if a usermovable entity is colliding with any
+			 *   other entities that have a collision component
+			 *
+			 * ========================================================================= */
+
+			// Basic collision detection for rectangle intersection 
+			// (NOTE: again, this would live inside the system itself).
+
+			function doesIntersect(obj1, obj2) {
+
+			// Takes in two objects with position and size properties
+			//  obj1: player controlled position and size
+			//  obj2: object to check.
+
+				var rect1 = {
+					x: obj1.position.x - obj1.size,
+					y: obj1.position.y - obj1.size,
+					height: obj1.size * 2,
+					width: obj1.size * 2
+				};
+
+				var rect2 = {
+					x: obj2.position.x - obj2.size,
+					y: obj2.position.y - obj2.size,
+					height: obj2.size * 2,
+					width: obj2.size * 2
+				};
+
+				return (rect1.x < rect2.x + rect2.width &&
+					rect1.x + rect1.width > rect2.x &&
+					rect1.y < rect2.y + rect2.height &&
+					rect1.height + rect1.y > rect2.y);
+			}
+
+		// Collision system.
+
+			ECS.systems.collision = function systemCollision ( entities ) {
+
+			// Here, we've implemented systems as functions which take in an array of entities. 
+			// An optimization would be to have some layer which only feeds in relevant entities 
+			// to the system, but for demo purposes we'll assume all entities are passed in and 
+			// iterate over them.
+
+				var curEntity; 
+				var entityIdsCollidedWith = [];
+
+			// iterate over all entities.
+				for ( var entityId in entities ){
+					curEntity = entities[entityId];
+
+				// NOTE: Even though we set the colors here, 
+				// we don't render them (that's the job of the renderer system).
+					curEntity.components.appearance.colors.r = 0;
+
+				// Only check for collision on player controllable entities 
+				// (playerControlled) and entities with a collision component.
+					if ( curEntity.components.appearance &&
+						curEntity.components.playerControlled && 
+						curEntity.components.position ){
+
+					// Systems can also modify components...
+					// Clear out existing collision appearance property.
+						curEntity.components.appearance.colors.r = 0;
+
+					// Test for intersection of player controlled rects vs all other collision rects.
+						for ( var entityId2 in entities ){ 
+
+						// Don't check player controller entities for collisions (otherwise, it'd always be true).
+							if ( !entities[entityId2].components.playerControlled &&
+								entities[entityId2].components.position &&
+								entities[entityId2].components.collision &&
+								entities[entityId2].components.appearance ){
+
+								if ( doesIntersect({
+										position: curEntity.components.position,
+										size: curEntity.components.appearance.size
+									}, {
+										position: entities[entityId2].components.position, 
+										size: entities[entityId2].components.appearance.size
+									}
+								)){
+									curEntity.components.appearance.colors.r = 255;
+									entities[entityId2].components.appearance.colors.r = 150;
+
+								// Don't modify the array in place; we're still iterating over it.
+									entityIdsCollidedWith.push(entityId);
+									var negativeDamageCutoff = 12;
+
+									if (curEntity.components.health){
+									// Increase the entity's health, it ate something.
+										curEntity.components.health.value += Math.max(
+											-2,
+											negativeDamageCutoff - entities[entityId2].components.appearance.size
+										);
+
+									// extra bonus for hitting small entities.
+										if (entities[entityId2].components.appearance.size < 1.3){
+											if (curEntity.components.health.value < 30){
+											// Add some bonus health if it's really small,
+											// but don't let it get out of control
+												curEntity.components.health.value += 9;
+											}
+										}
+
+										if ( entities[entityId2].components.appearance.size > negativeDamageCutoff ){
+										// Flash the canvas. NOTE: This is ok for a tutorial,
+										// but ideally this would not be coupled in the collision system.
+											ECS.$canvas.className='badHit';
+											setTimeout(function(){
+												ECS.$canvas.className='';
+											}, 100);
+
+										// Substract even more health from the player
+										// but don't let it take away more than 5 dm.
+											curEntity.components.health.value -= Math.min(
+												5,
+												entities[entityId2].components.appearance.size - negativeDamageCutoff
+											);
+
+										} else {
+
+										// Flash the canvas. NOTE: This is ok for a tutorial,
+										// but ideally this would not be coupled in the collision system.
+											ECS.$canvas.className='goodHit';
+											setTimeout(function(){ ECS.$canvas.className=''; }, 100);
+										}
+									}
+
+								// update the score.
+									ECS.score++;
+									ECS.$score.innerHTML = ECS.score;
+
+									delete ECS.entities[entityId2];
+
+									break;
+								}
+							}
+						}
+					}
+				}
+
+			// Add new entities if the player collided with any entities.
+
+				var chanceDecay = 0.8;
+				var numNewEntities = 3;
+
+				if (ECS.score > 100){
+					chanceDecay = 0.6;
+					numNewEntities = 4;
+				}
+
+				if (entityIdsCollidedWith.length > 0){
+					for ( i = 0; i < entityIdsCollidedWith.length; i++ ){
+						var newEntity;
+
+					// Don't add more entities if there are already too many.
+						if (Object.keys(ECS.entities).length < 30){
+
+							for ( var k=0; k < numNewEntities; k++){
+
+							// Add some new collision rects randomly.
+								if (Math.random() < 0.8){
+									newEntity = new ECS.Assemblages.CollisionRect();
+									ECS.entities[newEntity.id] = newEntity;
+
+								// add a % chance that they'll decay.
+									if (Math.random() < chanceDecay){
+										newEntity.addComponent( new ECS.Components.Health() );
+									}
+								}
+							}
+
+						}
+					}
+				}
+			};
+
+		</script>
+
+		<script>
+
+			/* =========================================================================
+			 *
+			 * render.js
+			 *  This script contains the game logic acts as a controller for the Entity 
+			 *  Component System
+			 *
+			 * ========================================================================= */
+
+			function clearCanvas () {
+				// Store the current transformation matrix
+				ECS.context.save();
+
+				// Use the identity matrix while clearing the canvas
+				ECS.context.setTransform(1, 0, 0, 1, 0, 0);
+				ECS.context.clearRect(0, 0, ECS.$canvas.width, ECS.$canvas.height);
+
+				// Restore the transform
+				ECS.context.restore();
+			}
+
+		// ECS - System - Render.
+
+			ECS.systems.render = function systemRender ( entities ) {
+				// Here, we've implemented systems as functions which take in an array of
+				// entities. An optimization would be to have some layer which only 
+				// feeds in relevant entities to the system, but for demo purposes we'll
+				// assume all entities are passed in and iterate over them.
+
+				// This happens each tick, so we need to clear out the previous rendered
+				// state
+				clearCanvas();
+
+				var curEntity, fillStyle; 
+
+				// iterate over all entities
+				for( var entityId in entities ){
+					curEntity = entities[entityId];
+
+					// Only run logic if entity has relevant components
+					//
+					// For rendering, we need appearance and position. Your own render 
+					// system would use whatever other components specific for your game
+					if( curEntity.components.appearance && curEntity.components.position ){
+
+						// Build up the fill style based on the entity's color data
+						fillStyle = 'rgba(' + [
+							curEntity.components.appearance.colors.r,
+							curEntity.components.appearance.colors.g,
+							curEntity.components.appearance.colors.b
+						];
+
+						if(!curEntity.components.collision){
+							// If the entity does not have a collision component, give it 
+							// some transparency
+							fillStyle += ',0.1)';
+						} else {
+							// Has a collision component
+							fillStyle += ',1)';
+						}
+
+						ECS.context.fillStyle = fillStyle;
+
+						// Color big squares differently
+						if(!curEntity.components.playerControlled &&
+						curEntity.components.appearance.size > 12){
+							ECS.context.fillStyle = 'rgba(0,0,0,0.8)';
+						}
+
+						// draw a little black line around every rect
+						ECS.context.strokeStyle = 'rgba(0,0,0,1)';
+
+						// draw the rect
+						ECS.context.fillRect( 
+							curEntity.components.position.x - curEntity.components.appearance.size,
+							curEntity.components.position.y - curEntity.components.appearance.size,
+							curEntity.components.appearance.size * 2,
+							curEntity.components.appearance.size * 2
+						);
+						// stroke it
+						ECS.context.strokeRect(
+							curEntity.components.position.x - curEntity.components.appearance.size,
+							curEntity.components.position.y - curEntity.components.appearance.size,
+							curEntity.components.appearance.size * 2,
+							curEntity.components.appearance.size * 2
+						);
+					}
+				}
+			};
+
+		</script>
+
+		<script>
+
+			/* =========================================================================
+			 *
+			 * game.js
+			 *  This script contains the game logic acts as a controller for the Entity 
+			 *  Component System
+			 *
+			 * ========================================================================= */
+
+			ECS.Game = function Game (){
+
+			// This is our "main" function which controls everything. We setup the 
+			// systems to loop over, setup entities, and setup and kick off the game loop.
+
+				var self = this;
+
+			// Create some entities.
+
+				var entities = {}; // object containing { id: entity  }
+				var entity;
+
+			// Create a bunch of random entities.
+
+				for ( var i=0; i < 20; i++ ){
+
+					entity = new ECS.Entity();
+					entity.addComponent( new ECS.Components.Appearance());
+					entity.addComponent( new ECS.Components.Position());
+
+				// % chance for decaying rects
+					if ( Math.random() < 0.8 ) {
+						entity.addComponent( new ECS.Components.Health() );
+					}
+
+				// NOTE: If we wanted some rects to not have collision, 
+				// we could set it here. Could provide other gameplay mechanics perhaps?
+					entity.addComponent( new ECS.Components.Collision());
+
+					entities[entity.id] = entity;
+				}
 
 
+			// PLAYER ENTITY.
 
+			// Make the last entity the "PC" entity (playerControlled).
+			// it must be player controlled, have health and collision components.
+				entity = new ECS.Entity();
+				entity.addComponent( new ECS.Components.Appearance() );
+				entity.addComponent( new ECS.Components.Position() );
+				entity.addComponent( new ECS.Components.PlayerControlled() );
+				entity.addComponent( new ECS.Components.Health() );
+				entity.addComponent( new ECS.Components.Collision() );
+
+			// we can also edit any component, as it's just data.
+				entity.components.appearance.colors.g = 255;
+				entities[entity.id] = entity;
+
+
+			// store reference to entities.
+				ECS.entities = entities;
+
+
+			// SYSTEMS SETUP.
+
+			// Setup the array of systems. The order of the systems  
+			// is likely critical, so ensure the systems are iterated in the right order.
+
+				var systems = [
+					ECS.systems.userInput,
+					ECS.systems.collision,
+					ECS.systems.decay, 
+					ECS.systems.render
+				];
+
+
+			// GAME LOOP.
+
+				function gameLoop (){
+
+				// Simple game loop.
+					for (var i=0, len=systems.length; i < len; i++){
+					// Call the system and pass in entities
+					// NOTE: One optimal solution would be to only pass in entities
+					// that have the relevant components for the system, instead of 
+					// forcing the system to iterate over all entities.
+						systems[i](ECS.entities);
+					}
+
+				// Run through the systems. 
+				// continue the loop.
+					if (self._running !== false){
+						requestAnimationFrame(gameLoop);
+					}
+				}
+
+			// Kick off the game loop.
+
+				requestAnimationFrame(gameLoop);
+
+			// Lose condition.
+
+				this._running = true; // is the game going?
+				this.endGame = function endGame(){ 
+					self._running = false;
+					document.getElementById('final-score').innerHTML = ECS.score;
+					document.getElementById('game-over').className = '';
+
+				// set a small timeout to make sure we set the background.
+					setTimeout(function(){
+						document.getElementById('game-canvas').className = 'game-over';
+					}, 100);
+				};
+
+				return this;
+			};
+
+		// Kick off the game.
+
+			ECS.game = new ECS.Game();
 
 		</script>
 
