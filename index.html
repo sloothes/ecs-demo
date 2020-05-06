@@ -2,7 +2,7 @@
 <html lang="en">
 	<head>
 
-		<title>ECS Demo (Rectangle Eater)</title>
+		<title>ECS Demo (Hammer test)</title>
 
 		<meta charset="utf-8">
 		<meta name="generator" content="Three.js Editor">
@@ -128,6 +128,8 @@
 
 		<canvas id="game-canvas" width=600 height=400></canvas>
 
+		<div id="output" style="margin:auto;margin-top:20px;text-align:center;"></div>
+
 		<div id="game-over" class="hidden"> 
 			<h1>Game Over</h1>
 			<h2>Final Score:<span id='final-score'>0</span></h2>
@@ -151,6 +153,8 @@
 
 		<script>
 
+			debugMode = true;
+
 		// For tutorial purposes, we'll set up a global 
 		// object containing references to all objects.
 
@@ -171,6 +175,97 @@
 			ECS.context = ECS.$canvas.getContext("2d");
 			ECS.$score = document.getElementById("score");
 
+		</script>
+
+		<script>
+/*
+		//	Hammer testing.
+
+            ECS.$output = document.getElementById("output");
+
+			var userInputPosition = {
+				x: 0, y: 0, lastX: 0, lastY: 0
+			};
+
+			var mc = new Hammer.Manager(ECS.$canvas);
+			mc.add(new Hammer.Pan({ threshold: 0, pointers: 0 }));
+
+			mc.on("panstart", function onPanStart(e){
+				debugMode && console.log({center:e.center, event:e});
+
+				userInputPosition.isTouch = true;
+
+				var rect = ECS.$canvas.getBoundingClientRect();
+				userInputPosition.x = e.center.x - rect.left - 30;
+				userInputPosition.y = e.center.y - rect.top - 30;
+
+				userInputPosition.lastX = userInputPosition.x;
+				userInputPosition.lastY = userInputPosition.y;
+
+				ECS.$output.innerHTML = JSON.stringify(userInputPosition, null, 4);
+			});
+
+			mc.on("panmove", function onPanMove(e) {
+
+			// For touch events, don't use x/y.
+				userInputPosition.lastX = userInputPosition.lastX;
+				userInputPosition.lastY = userInputPosition.lastY;
+
+				userInputPosition.x = userInputPosition.lastX + e.deltaX;
+				userInputPosition.y = userInputPosition.lastY + e.deltaY;
+
+				userInputPosition.isTouch = true;
+				ECS.$output.innerHTML = JSON.stringify(userInputPosition, null, 4);
+			});
+
+			mc.on("panend", function onPanEnd(ev){
+				userInputPosition.isTouch = true;
+
+				userInputPosition.lastX = userInputPosition.x;
+				userInputPosition.lastY = userInputPosition.y;
+
+				ECS.$output.innerHTML = JSON.stringify(userInputPosition, null, 4);
+			});
+
+        // RENDER.
+
+			function clearCanvas () {
+
+			// Store the current transformation matrix.
+				ECS.context.save();
+
+			// Use the identity matrix while clearing the canvas.
+				ECS.context.setTransform(1, 0, 0, 1, 0, 0);
+				ECS.context.clearRect(0, 0, ECS.$canvas.width, ECS.$canvas.height);
+
+			// Restore the transform
+				ECS.context.restore();
+			}
+
+			(function loop(){
+
+				clearCanvas();
+				ECS.context.fillStyle = "rgba(0,0,0,1)";
+				ECS.context.strokeStyle = "rgba(0,0,0,1)";
+
+			// draw the rect.
+				ECS.context.fillRect( 
+					userInputPosition.x + 20/2,
+					userInputPosition.y + 20/2,
+					20, 20
+				);
+
+			// stroke the rect.
+				ECS.context.strokeRect(
+					userInputPosition.x + 20/2,
+					userInputPosition.y + 20/2,
+					20, 20
+				);
+
+				requestAnimationFrame(loop);
+
+			})();
+*/
 
 		</script>
 
@@ -336,9 +431,9 @@
 				CollisionRect: function CollisionRect(){
 				// Basic collision rect.
 					var entity = new ECS.Entity();
-					entity.addComponent( new ECS.Components.Appearance());
-					entity.addComponent( new ECS.Components.Position());
-					entity.addComponent( new ECS.Components.Collision());
+					entity.addComponent( new ECS.Components.Appearance() );
+					entity.addComponent( new ECS.Components.Position() );
+					entity.addComponent( new ECS.Components.Collision() );
 					return entity;
 				}
 
