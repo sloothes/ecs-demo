@@ -248,9 +248,9 @@
 			// in a coffee shop. We'll start by opening the shop, then we'll go into full
 			// service mode and, at the end of the day, we'll close the shop again. What
 			// each state does should be pretty clear from the systems it composes.
-				var opening = ecs.systematic( customers_enter );
-				var in_service = ecs.systematic( customers_enter, manage_workforce, make_sales, serve_orders );
-				var closing = ecs.systematic( close_register, manage_workforce, serve_orders );
+				var opening = ecs.systematic( customers_enter ); // state.
+				var in_service = ecs.systematic( customers_enter, manage_workforce, make_sales, serve_orders ); // states.
+				var closing = ecs.systematic( close_register, manage_workforce, serve_orders ); // states.
 
 			//	SYSTEMS.
 
