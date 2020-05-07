@@ -391,7 +391,7 @@
 					.add(new Serving())
 				];
 
-				console.log( "cashiers:", cashiers );
+				console.log( "cashiers:", JSON.parse(JSON.stringify(cashiers)) );
 
 				var baristas = [
 					new ecs.Entity()
@@ -400,7 +400,7 @@
 					.add(new Serving())
 				];
 
-				console.log( "baristas:", baristas );
+				console.log( "baristas:", .parse(JSON.stringify(baristas)) );
 
 			// The simulation itself will progress based on a timed schedule. 
 			// Here are relevant timings.
