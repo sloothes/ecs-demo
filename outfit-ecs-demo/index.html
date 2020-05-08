@@ -2,7 +2,7 @@
 <html lang="en">
 	<head>
 
-		<title>Outfit ECS demo</title>
+		<title>Outfit ECS demo system</title>
 
 		<meta charset="utf-8">
 		<meta name="generator" content="Three.js Editor">
@@ -190,21 +190,21 @@
 					return this;
 				};
 
+			//	Changing a little bit the validation system.
+
+				const component_string = "body,gender,hair,shoes,glasses,upperbody,lowerbody";
+
 				OutfitManagementSystem.prototype._components = (function(){
-					return "body,gender,hair,shoes,glasses,upperbody,lowerbody".split(",");
+					return component_string.split(",");
 				})();
 
+			//	An entity is valid for the system if...
 				OutfitManagementSystem.prototype._validate = function (entity){
 
-					var length = Object.keys( entity.components ).length; 
-					if ( length != this._components.length ) return false;
-
-					for ( var i = 0; i < this._components.length; i++ ) {
-						var key = this._components[i]; // console.log(key);
-						if ( !entity.components[ key ] ) return false;
-					}
-
-					return true;
+				//	have exact the same component objects. Order matters.
+					var string = Object.keys( entity.components ).join();
+					debugMode && console.log( string, string == component_string );
+					return (string == component_string);
 				};
 
 				OutfitManagementSystem.prototype.push = function(entity){
