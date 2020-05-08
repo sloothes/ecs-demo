@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+
+		<title>Outfit ECS demo</title>
+
+		<meta charset="utf-8">
+		<meta name="generator" content="Three.js Editor">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+
+		<link rel="stylesheet" href="/css/joystick.css">
+		<link rel="stylesheet" href="/css/bootstrap.min.css">
+		<link rel="stylesheet" href="/css/bootbox-dialoges.css">
+		<link rel="stylesheet" href="/css/jcrop.css">
+
+		<script src="/js/watch.js"></script>
+		<script src="/js/jquery.min.js"></script> 
+		<script src="/js/system.min.js"></script>
+		<script src="/js/signals.min.js"></script>
+		<script src="/js/inflate.min.js"></script>
+		<script src="/js/zangodb.min.js"></script>
+		<script src="/js/bootstrap.min.js"></script>
+		<script src="/js/hold-event.min.js"></script>
+		<script src="/js/jcrop.js"></script>
+
+		<style>
+
+			body {
+				margin: 0px;
+				font-size: 13px;
+				font-family: sans-serif;
+				background-repeat: repeat;
+				background-image: url("https://i.imgur.com/rnZZU0i.png") !important;
+				overflow: hidden;
+			}
+
+			#loading-bar {
+				width:100%;
+				height:100%;
+				top:0; left:0;
+				position:fixed;
+				display:flex;
+				align-items:center;
+				justify-content:center;
+			}
+
+			.middle > * {
+				top:0; 
+				left:0;
+				right:0;
+				bottom:0;
+				margin:auto;
+				position:absolute;
+			}
+
+			#joystick1 {
+				right: calc(40px + 370px);
+			}
+			
+			#jumpButton {
+				right: calc(105px + 370px);
+			}
+
+			.btn-matcap,
+			.btn-terrain {
+				padding:0;
+				float:left;
+				width:55px;
+				height:55px;
+				border:1px solid;
+				border-radius:4px;
+				margin-right:4px;
+				margin-bottom:4px;
+				display:inline-block;
+			}
+
+			.btn-matcap + .btn-matcap,
+			.btn-terrain + .btn-terrain {
+				margin-right:4px;
+			}
+
+		</style>
+	</head>
+
+	<body ontouchstart="">
+
+		<script src="/rlc/js/TabUI.js"></script>
+
+		<script>
+
+			var debugMode = true; // important!
+
+			Number.prototype.format = function (){
+				return this.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,");
+			};
+
+			function round(number, precision) {
+				var shift = function (number, precision, reverseShift) {
+					if (reverseShift) {
+						precision = -precision;
+					}  
+					numArray = ("" + number).split("e");
+					return +(numArray[0] + "e" + (numArray[1] ? (+numArray[1] + precision) : precision));
+				};
+				return shift(Math.round(shift(number, precision, false)), precision, true);
+			}
+
+		</script>
+
+		<script>
+
+		//	TabUI.
+
+			(function(){
+
+				var sidePanel = createSidePanel();
+				sidePanel.style.background = "#eeeeeeee";
+
+				var outfitTab = TabUI.add( "Outfit", "outfit-tab" );
+
+				document.body.appendChild( sidePanel );
+				TabUI.append( "Outfit" );
+				TabUI.Outfit.role.classList.add("active");
+				TabUI.Outfit.tab.classList.add("in","active");
+
+			})();
+
+		</script>
+
+		<script>
+
+			(function(){
+
+			//	Gender Components.
+
+				var genderComponents = {
+					male:  null,
+					female:  null,
+				};
+
+				var tab = TabUI.Outfit.tab;
+				var row = document.createElement("h3");
+				row.textContent = "Gender";
+				row.title = "Gender components";
+
+				var select = document.createElement("select");
+				select.id = "gender-component";
+				select.style.cssText = "width:180px;color:#000;float:right;"
+					+ "border:1px solid;border-radius:4px;padding:2px 4px 4px 4px;"
+					+ "font-size:20px;margin-left:10px;";
+
+				select.appendChild(createOption("Male"));
+				select.appendChild(createOption("Female"));
+
+				select.value = "";
+				row.appendChild( select );
+				tab.appendChild( row );
+
+				function createOption(name, value){
+					var option = document.createElement("option");
+					option.text = name;
+					option.value = name.toLowerCase();
+					return option;
+				}
+
+			})();
+
+		</script>
+
+		<script>
+			
+		//	Outfit tab is a Entity creator panel. The compination
+		//	of components selections creates an outfit entity.
+
+			(function(){
+
+			//	Outfit Components.
+
+				var outfitComponents = {
+					hair:  null,
+					body:  null,
+					legs:  null,
+					torso: null,
+					shoes: null,
+					glasses: null,
+				};
+
+				var tab = TabUI.Outfit.tab;
+				var row = document.createElement("h3");
+				row.textContent = "Outfit";
+				row.title = "Outfit components";
+
+				var select = document.createElement("select");
+				select.id = "outfit-component";
+				select.style.cssText = "width:180px;color:#000;float:right;"
+					+ "border:1px solid;border-radius:4px;padding:2px 4px 4px 4px;"
+					+ "font-size:20px;margin-left:10px;";
+
+				select.appendChild(createOption("Hair"));
+				select.appendChild(createOption("Body"));
+				select.appendChild(createOption("Legs"));
+				select.appendChild(createOption("Torso"));
+				select.appendChild(createOption("Shoes"));
+				select.appendChild(createOption("Glasses"));
+
+				select.value = "";
+				row.appendChild( select );
+				tab.appendChild( row );
+
+				function createOption(name, value){
+					var option = document.createElement("option");
+					option.text = name;
+					option.value = name.toLowerCase();
+					return option;
+				}
+
+			})();
+
+			(function(){
+
+			//	Layer Components.
+
+				var layerComponents = {
+					skin:      null,
+					tattoo:    null,
+					makeup:    null,
+					clothing:  null,
+					overcoat:  null,
+					bodypaint: null,
+					underwear: null,
+				};
+
+				var tab = TabUI.Outfit.tab;
+				var row = document.createElement("h3");
+				row.textContent = "Layer";
+
+				var select = document.createElement("select");
+				select.id = "layer-component";
+				select.style.cssText = "width:180px;color:#000;float:right;"
+					+ "border:1px solid;border-radius:4px;padding:2px 4px 4px 4px;"
+					+ "font-size:20px;margin-left:10px;";
+
+				select.appendChild(createOption("Skin"));
+				select.appendChild(createOption("Tattoo"));
+				select.appendChild(createOption("Makeup"));
+				select.appendChild(createOption("Clothing"));
+				select.appendChild(createOption("Overcoat"));
+				select.appendChild(createOption("Bodypaint"));
+				select.appendChild(createOption("Underwear"));
+
+				select.value = "";
+				row.appendChild( select );
+				tab.appendChild( row );
+
+				function createOption(name, value){
+					var option = document.createElement("option");
+					option.text = name;
+					option.value = name.toLowerCase();
+					return option;
+				}
+
+			})();
+
+			(function(){
+
+			//	Divider.
+
+				var tab = TabUI.Outfit.tab;
+				var row = document.createElement("h3");
+				var hr = document.createElement("hr");
+				hr.style.cssText = "border-top-color:#000;margin-top:30px;";
+
+				row.appendChild( hr );
+				tab.appendChild( row );
+
+			})();
+
+		</script>
+
+		<script>
+
+			(function(){
+
+			//	Hair Components.
+
+				var hatComponents = {
+					"ski":  null,
+					"witch":  null,
+					"nurse":  null,
+					"santa": null,
+					"sailor": null,
+					"indian": null,
+					"catwoman": null,
+				};
+
+				var hairComponents = {
+					"med": null,
+					"med bob": null,
+					"med shag": null,
+					"med curly": null,
+					"med bob bangs": null,
+					"med ponytail": null,
+					"bob tied": null,
+					"bob short": null,
+					"long curly": null,
+					"long parted": null,
+					"long no bangs": null,
+					"long cut bangs": null,
+					"long straight": null,
+					"long swoop bangs": null,
+					"short": null,
+					"short vic": null,
+					"short straight": null,
+					"pigtails": null,
+					"piggytail": null,
+					"big ponytail": null,
+					"french braid": null,
+					"dreads shoulder": null,
+					"oriental tied": null,
+					"punk spiky": null,
+					"punk mohawk": null,
+					"punk super spike": null,
+					"punk mohawk sides": null,
+					"wavy": null,
+				};
+
+				var tab = TabUI.Outfit.tab;
+				var row = document.createElement("h3");
+				row.textContent = "Hair";
+
+				var select = document.createElement("select");
+				select.id = "hair-component";
+				select.style.cssText = "width:180px;color:#000;float:right;"
+					+ "border:1px solid;border-radius:4px;padding:2px 4px 4px 4px;"
+					+ "font-size:20px;margin-left:10px;";
+
+			//	Hairs.
+				select.appendChild(createOption("Med"));
+				select.appendChild(createOption("Med Bob"));
+				select.appendChild(createOption("Med Shag"));
+				select.appendChild(createOption("Med Curly"));
+				select.appendChild(createOption("Med Bob Bangs"));
+				select.appendChild(createOption("Med Ponytail"));
+				select.appendChild(createOption("Bob Tied"));
+				select.appendChild(createOption("Bob Short"));
+				select.appendChild(createOption("Long Curly"));
+				select.appendChild(createOption("Long Parted"));
+				select.appendChild(createOption("Long No Bangs"));
+				select.appendChild(createOption("Long Cut Bangs"));
+				select.appendChild(createOption("Long Straight"));
+				select.appendChild(createOption("Long Swoop Bangs"));
+				select.appendChild(createOption("Short"));
+				select.appendChild(createOption("Short Vic"));
+				select.appendChild(createOption("Short Straight"));
+				select.appendChild(createOption("Pigtails"));
+				select.appendChild(createOption("Piggytail"));
+				select.appendChild(createOption("Big Ponytail"));
+				select.appendChild(createOption("French Braid"));
+				select.appendChild(createOption("Dreads Shoulder"));
+				select.appendChild(createOption("Oriental Tied"));
+				select.appendChild(createOption("Punk Spiky"));
+				select.appendChild(createOption("Punk Mohawk"));
+				select.appendChild(createOption("Punk Super Spike"));
+				select.appendChild(createOption("Punk Mohawk Sides"));
+				select.appendChild(createOption("Wavy"));
+			//	Hats.
+				select.appendChild(createOption("Ski"));
+				select.appendChild(createOption("Witch"));
+				select.appendChild(createOption("Nurse"));
+				select.appendChild(createOption("Santa"));
+				select.appendChild(createOption("Sailor"));
+				select.appendChild(createOption("Indian"));
+				select.appendChild(createOption("Catwoman"));
+
+				select.value = "";
+				row.appendChild( select );
+				tab.appendChild( row );
+
+				function createOption(name, value){
+					var option = document.createElement("option");
+					option.text = name;
+					option.value = name.toLowerCase();
+					return option;
+				}
+
+			})();
+
+		</script>
+
+		<script>
+
+			(function(){
+
+			//	Female Shoes Components.
+				
+				var shoesComponents = {
+					"shoes 01": null,
+					"shoes 02": null,
+					"shoes 03": null,
+					"shoes 04": null,
+					"shoes 05": null,
+					"shoes 06": null,
+					"shoes 07": null,
+					"shoes 08": null,
+					"shoes 09": null,
+					"shoes 10": null,
+					"shoes 11": null,
+					"shoes 12": null,
+					"shoes 13": null,
+					"shoes 14": null,
+					"shoes 15": null,
+					"shoes 16": null,
+					"shoes 17": null,
+					"shoes 18": null,
+					"shoes 19": null,
+					"shoes 20": null,
+					"shoes 21": null,
+				};
+
+				var tab = TabUI.Outfit.tab;
+				var row = document.createElement("h3");
+				row.textContent = "Shoes";
+
+				var select = document.createElement("select");
+				select.id = "shoes-component";
+				select.style.cssText = "width:180px;color:#000;float:right;"
+					+ "border:1px solid;border-radius:4px;padding:2px 4px 4px 4px;"
+					+ "font-size:20px;margin-left:10px;";
+
+				for ( var i = 1; i < 22; i++ ) {
+					(function(i){
+						var name = "Shoes ";
+						if ( i < 10 ) name += "0";
+						name += i;
+						select.appendChild(createOption(name));
+					})(i);
+				}
+
+				select.value = "";
+				row.appendChild( select );
+				tab.appendChild( row );
+
+				function createOption(name, value){
+					var option = document.createElement("option");
+					option.text = name;
+					option.value = name.toLowerCase();
+					return option;
+				}
+
+			})();
+
+			(function(){
+
+			//	Female Glasses Components.
+				
+				var glassesComponents = {
+					"mask": null,
+					"glasses 01": null,
+					"glasses 02": null,
+					"glasses 03": null,
+					"glasses 04": null,
+				};
+
+				var tab = TabUI.Outfit.tab;
+				var row = document.createElement("h3");
+				row.textContent = "Glasses";
+
+				var select = document.createElement("select");
+				select.id = "glasses-component";
+				select.style.cssText = "width:180px;color:#000;float:right;"
+					+ "border:1px solid;border-radius:4px;padding:2px 4px 4px 4px;"
+					+ "font-size:20px;margin-left:10px;";
+
+				select.appendChild(createOption("Mask"));
+				select.appendChild(createOption("Glasses 01"));
+				select.appendChild(createOption("Glasses 02"));
+				select.appendChild(createOption("Glasses 03"));
+				select.appendChild(createOption("Glasses 04"));
+
+				select.value = "";
+				row.appendChild( select );
+				tab.appendChild( row );
+
+				function createOption(name, value){
+					var option = document.createElement("option");
+					option.text = name;
+					option.value = name.toLowerCase();
+					return option;
+				}
+
+			})();
+
+		</script>
+
+		<script>
+
+			(function(){
+
+			//	Female Upperbody Clothes Components.
+				
+				var upperbodyComponents = {
+					"dress": null,
+					"tshirt": null,
+					"blazer": null,
+					"hoodie": null,
+					"corset": null,
+					"tanktop": null,
+					"cowlneck": null,
+					"elvis jacket": null,
+				};
+
+				var tab = TabUI.Outfit.tab;
+				var row = document.createElement("h3");
+				row.textContent = "Upperbody";
+
+				var select = document.createElement("select");
+				select.id = "upperbody-component";
+				select.style.cssText = "width:180px;color:#000;float:right;"
+					+ "border:1px solid;border-radius:4px;padding:2px 4px 4px 4px;"
+					+ "font-size:20px;margin-left:10px;";
+
+				select.appendChild(createOption("Dress"));
+				select.appendChild(createOption("TShirt"));
+				select.appendChild(createOption("Blazer"));
+				select.appendChild(createOption("Hoodie"));
+				select.appendChild(createOption("Corset"));
+				select.appendChild(createOption("Tanktop"));
+				select.appendChild(createOption("CowlNeck"));
+				select.appendChild(createOption("Long Coat"));
+				select.appendChild(createOption("Elvis Jacket"));
+
+				select.value = "";
+				row.appendChild( select );
+				tab.appendChild( row );
+
+				function createOption(name, value){
+					var option = document.createElement("option");
+					option.text = name;
+					option.value = name.toLowerCase();
+					return option;
+				}
+
+			})();
+
+			(function(){
+
+			//	Female Lowerbody Clothes Components.
+				
+				var lowerbodyComponents = {
+					"bootcut": null,
+					"baggy jeans": null,
+					"flare leg": null,
+					"flare bottoms": null,
+					"frilly skirt": null,
+					"mini skirt": null,
+					"long skirt": null,
+					"short skirt": null,
+					"straightleg": null,
+					"gown": null,
+				};
+
+				var tab = TabUI.Outfit.tab;
+				var row = document.createElement("h3");
+				row.textContent = "Lowerbody";
+
+				var select = document.createElement("select");
+				select.id = "lowerbody-component";
+				select.style.cssText = "width:180px;color:#000;float:right;"
+					+ "border:1px solid;border-radius:4px;padding:2px 4px 4px 4px;"
+					+ "font-size:20px;margin-left:10px;";
+
+				select.appendChild(createOption("Bootcut"));
+				select.appendChild(createOption("Baggy Jeans"));
+				select.appendChild(createOption("Flare Leg"));
+				select.appendChild(createOption("Flare Bottoms"));
+				select.appendChild(createOption("Frilly Skirt"));
+				select.appendChild(createOption("Mini Skirt"));
+				select.appendChild(createOption("Long Skirt"));
+				select.appendChild(createOption("Short Skirt"));
+				select.appendChild(createOption("Straightleg"));
+				select.appendChild(createOption("Gown"));
+
+				select.value = "";
+				row.appendChild( select );
+				tab.appendChild( row );
+
+				function createOption(name, value){
+					var option = document.createElement("option");
+					option.text = name;
+					option.value = name.toLowerCase();
+					return option;
+				}
+
+			})();
+
+			(function(){
+
+			//	Divider.
+
+				var tab = TabUI.Outfit.tab;
+				var row = document.createElement("h3");
+				var hr = document.createElement("hr");
+				hr.style.cssText = "border-top-color:#000;margin-top:30px;";
+
+				row.appendChild( hr );
+				tab.appendChild( row );
+
+			})();
+
+		</script>
+
+	</body>
+</html>

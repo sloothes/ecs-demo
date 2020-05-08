@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+
+		<title>Outfit ECS demo</title>
+
+		<meta charset="utf-8">
+		<meta name="generator" content="Three.js Editor">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+
+		<link rel="stylesheet" href="/css/joystick.css">
+		<link rel="stylesheet" href="/css/bootstrap.min.css">
+		<link rel="stylesheet" href="/css/bootbox-dialoges.css">
+		<link rel="stylesheet" href="/css/jcrop.css">
+
+		<script src="/js/watch.js"></script>
+		<script src="/js/jquery.min.js"></script> 
+		<script src="/js/system.min.js"></script>
+		<script src="/js/signals.min.js"></script>
+		<script src="/js/inflate.min.js"></script>
+		<script src="/js/zangodb.min.js"></script>
+		<script src="/js/bootstrap.min.js"></script>
+		<script src="/js/hold-event.min.js"></script>
+		<script src="/js/jcrop.js"></script>
+
+		<style>
+
+			body {
+				margin: 0px;
+				font-size: 13px;
+				font-family: sans-serif;
+				background-repeat: repeat;
+				background-image: url("https://i.imgur.com/rnZZU0i.png") !important;
+				overflow: hidden;
+			}
+
+			#loading-bar {
+				width:100%;
+				height:100%;
+				top:0; left:0;
+				position:fixed;
+				display:flex;
+				align-items:center;
+				justify-content:center;
+			}
+
+			.middle > * {
+				top:0; 
+				left:0;
+				right:0;
+				bottom:0;
+				margin:auto;
+				position:absolute;
+			}
+
+			#joystick1 {
+				right: calc(40px + 370px);
+			}
+			
+			#jumpButton {
+				right: calc(105px + 370px);
+			}
+
+			.btn-matcap,
+			.btn-terrain {
+				padding:0;
+				float:left;
+				width:55px;
+				height:55px;
+				border:1px solid;
+				border-radius:4px;
+				margin-right:4px;
+				margin-bottom:4px;
+				display:inline-block;
+			}
+
+			.btn-matcap + .btn-matcap,
+			.btn-terrain + .btn-terrain {
+				margin-right:4px;
+			}
+
+		</style>
+	</head>
+
+	<body ontouchstart="">
+
+		<script src="/rlc/js/TabUI.js"></script>
+
+		<script>
+
+			var debugMode = true; // important!
+
+			Number.prototype.format = function (){
+				return this.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,");
+			};
+
+			function round(number, precision) {
+				var shift = function (number, precision, reverseShift) {
+					if (reverseShift) {
+						precision = -precision;
+					}  
+					numArray = ("" + number).split("e");
+					return +(numArray[0] + "e" + (numArray[1] ? (+numArray[1] + precision) : precision));
+				};
+				return shift(Math.round(shift(number, precision, false)), precision, true);
+			}
+
+		</script>
+
+		<script>
+
+		//	TabUI.
+
+			(function(){
+
+				var sidePanel = createSidePanel();
+				sidePanel.style.background = "#eeeeeeee";
+
+				var outfitTab = TabUI.add( "Outfit", "outfit-tab" );
+
+				document.body.appendChild( sidePanel );
+				TabUI.append( "Outfit" );
+				TabUI.Outfit.role.classList.add("active");
+				TabUI.Outfit.tab.classList.add("in","active");
+
+			})();
+
+		</script>
+
+		<script>
+
+			Component = function(obj){
+				if ( !obj ) return this;
+
+				var keys = Object.keys(obj);
+				var values = Object.values(obj);
+				
+				for ( var i = 0; i < keys.length; i++ ){
+					this[ keys[i] ] = values[i];
+				}
+
+				return this;
+			};
+
+		//
+
+			Entity = function(){
+				Entity.prototype._count++;
+				this.id = Date.now().toString(36);
+				this.components = {};
+				return this;
+			};
+
+			Entity.prototype._count = 0; // keep track of entities.
+
+			Entity.prototype.add = function(component){
+				if ( !component ) return this;
+				if ( !component.name ) return this;
+				if ( component == {} ) return this;
+				this.components[component.name.toLowerCase()] = component;
+				return this;
+			};
+
+			Entity.prototype.get = function(component) {
+				if ( !component ) return null;
+				if ( !component.name ) return null;
+				if ( component == {} ) return null;
+				return this.components[component.name.toLowerCase()];
+			};
+
+			Entity.prototype.remove = function(component) {
+				if ( !component ) return this;
+				if ( !component.name ) return this;
+				if ( component == {} ) return this;
+				delete this.components[component.name.toLowerCase()];
+				return this;
+			};
+
+		</script>
+
+		<script>
+
+			(function(){
+
+			//	There is an "OutfitSystem" that manage the avatar outfit.
+			//	Outfit system triggers on outfit droplists change event.
+
+				var OutfitManagementSystem = function(){
+
+					this.entities = [];
+
+					return this;
+				};
+
+				OutfitManagementSystem.prototype._components = (function(){
+					return "body,gender,hair,shoes,glasses,upperbody,lowerbody".split(",");
+				})();
+
+				OutfitManagementSystem.prototype._validate = function (entity){
+
+					var length = Object.keys( entity.components ).length; 
+					if ( length != this._components.length ) return false;
+
+					for ( var i = 0; i < this._components.length; i++ ) {
+						var key = this._components[i]; // console.log(key);
+						if ( !entity.components[ key ] ) return false;
+					}
+
+					return true;
+				};
+
+				OutfitManagementSystem.prototype.push = function(entity){
+					if ( this._validate(entity) ) this.entities.push(entity);
+					return this;
+				};
+
+				OutfitManagementSystem.prototype.unshift = function(entity){
+					if ( this._validate(entity) ) this.entities.unshift(entity);
+					return this;
+				};
+
+			//	We have the gender, body, hair, shoes, glasses, upperbody and lowerbody components.
+
+			//	An outfit entity created in outfit droplists change event.
+			//	Outfit entity defined from gender, body, hair, shoes, glasses, upperbody 
+			//	and lowerbody components. Gender and body component required.
+
+			//	Now we need the change event handler that creates the Outfit Entity.
+
+				outfitSystem = new OutfitManagementSystem(); 
+				debugMode && console.log( outfitSystem );
+
+				outfitSystem.update = function update(){
+					while ( this.entities.length ){
+						(function(entity){
+							dressComponentUpdate(entity.components);
+						})( this.entities.shift() );
+					}
+				};
+
+				function dressComponentUpdate(components){
+					if ( components.upperbody.value == "dress" ) {
+						components.lowerbody.value = document.getElementById("lowerbody-component").value = "";
+					}
+				}
+
+			})();
+
+			function outfitDroplistEventHandler(){
+				var entity = new Entity();
+				entity.add( new Component({name:"body", value:null}) )
+					.add( new Component({name:"gender", value:document.getElementById("gender-component").value}) )
+					.add( new Component({name:"hair", value:document.getElementById("hair-component").value}) )
+					.add( new Component({name:"shoes", value:document.getElementById("shoes-component").value}) )
+					.add( new Component({name:"glasses", value:document.getElementById("glasses-component").value}) )
+					.add( new Component({name:"upperbody", value:document.getElementById("upperbody-component").value}) )
+					.add( new Component({name:"lowerbody", value:document.getElementById("lowerbody-component").value}) );
+				debugMode && console.log( entity );
+
+				outfitSystem.push( entity ).update();
+			}
+
+		</script>
+
+		<script>
+
+		//	Here we have a "gender" select dom element that takes value
+		//	(depented on selected option). It can have "male", "female"
+		//	or "" values.
+
+		//	A component is a object with data (aka values).
+		//	So we have a gender component with a "gender" value.
+			//	genderComponent = { gender:null };
+		//	There is the "body" component. Every avatar have one.
+			//	bodyComponent = { body:null };
+		//	An outfit component describes what the avatar is wearing.
+			//	outfitComponent = {
+			//		body:null, hair:null, shoes:null, 
+			//		upperbody:null, lowerbody:null, glasses:null, 
+			//	};
+
+		//	An "avatar" entity must have a "gender", a "body" and an "outfit"
+		//	components.
+
+			(function(){
+
+			//	Gender Component.
+
+				var tab = TabUI.Outfit.tab;
+				var row = document.createElement("h3");
+				row.textContent = "Gender";
+
+				var select = document.createElement("select");
+				select.id = "gender-component";
+				select.style.cssText = "width:180px;color:#000;float:right;"
+					+ "border:1px solid;border-radius:4px;padding:2px 4px 4px 4px;"
+					+ "font-size:20px;margin-left:10px;";
+
+				select.appendChild(createOption("Male"));
+				select.appendChild(createOption("Female"));
+
+				select.addEventListener("change", outfitDroplistEventHandler );
+
+				select.value = "";
+				row.appendChild( select );
+				tab.appendChild( row );
+
+				function createOption(name, value){
+					var option = document.createElement("option");
+					option.text = name;
+					option.value = name.toLowerCase();
+					return option;
+				}
+
+			})();
+
+		</script>
+
+		<script>
+
+		//	Outfit tab is a Entity creator panel. The compination
+		//	of components selections creates an outfit entity.
+
+			(function(){
+
+			//	Outfit Component.
+
+				var outfitComponents = {
+					"body":      null,
+					"hair":      null,
+					"shoes":     null,
+					"glasses":   null,
+					"upperbody": null,
+					"lowerbody": null,
+				};
+
+				var tab = TabUI.Outfit.tab;
+				var row = document.createElement("h3");
+				row.textContent = "Outfit";
+				row.title = "Outfit components";
+
+				var select = document.createElement("select");
+				select.id = "outfit-component";
+				select.style.cssText = "width:180px;color:#000;float:right;"
+					+ "border:1px solid;border-radius:4px;padding:2px 4px 4px 4px;"
+					+ "font-size:20px;margin-left:10px;";
+
+				select.appendChild(createOption("Body"));
+				select.appendChild(createOption("Hair"));
+				select.appendChild(createOption("Shoes"));
+				select.appendChild(createOption("Glasses"));
+				select.appendChild(createOption("Upperbody"));
+				select.appendChild(createOption("Lowerbody"));
+
+				select.value = "";
+				row.appendChild( select );
+				tab.appendChild( row );
+
+				function createOption(name, value){
+					var option = document.createElement("option");
+					option.text = name;
+					option.value = name.toLowerCase();
+					return option;
+				}
+
+			})();
+
+			(function(){
+
+			//	Layer Components.
+
+				var layerComponents = {
+					skin:      null,
+					tattoo:    null,
+					makeup:    null,
+					clothing:  null,
+					overcoat:  null,
+					bodypaint: null,
+					underwear: null,
+				};
+
+				var tab = TabUI.Outfit.tab;
+				var row = document.createElement("h3");
+				row.textContent = "Layer";
+
+				var select = document.createElement("select");
+				select.id = "layer-component";
+				select.style.cssText = "width:180px;color:#000;float:right;"
+					+ "border:1px solid;border-radius:4px;padding:2px 4px 4px 4px;"
+					+ "font-size:20px;margin-left:10px;";
+
+				select.appendChild(createOption("Skin"));
+				select.appendChild(createOption("Tattoo"));
+				select.appendChild(createOption("Makeup"));
+				select.appendChild(createOption("Clothing"));
+				select.appendChild(createOption("Overcoat"));
+				select.appendChild(createOption("Bodypaint"));
+				select.appendChild(createOption("Underwear"));
+
+				select.value = "";
+				row.appendChild( select );
+				tab.appendChild( row );
+
+				function createOption(name, value){
+					var option = document.createElement("option");
+					option.text = name;
+					option.value = name.toLowerCase();
+					return option;
+				}
+
+			})();
+
+			//	We need a system where when the button clicked to clear the current outfit select value.
+			//	As every system needs entities to parse in, we need a select dom entity
+			//	and a system to modify the select dom value. This system must not act at
+			//	every tick but only at click button event. So our system trigger in button click event.
+
+			//	Now we need to create these entities and parse them to the button click event.
+			//	A droplist entity should have the dom element id, and the dom element value.
+			//	(optional can have the dom element tag name).
+			//	So droplist entity should look like:
+			/*
+					var droplistEntity = {
+						id: "465468464", // entity id.
+						components: {
+							droplistComponent: {
+								domElement_id: "hair-component",
+								domElement_tag: "select",
+								domElement_value: "value",
+							},
+							droplistComponent: {
+								domElement_id: "shoes-component",
+								domElement_tag: "select",
+								domElement_value: "value",
+							},
+							droplistComponent: {
+								domElement_id: "glasses-component",
+								domElement_tag: "select",
+								domElement_value: "value",
+							},
+
+						}
+					};
+			*/
+			//	As we said before, an entity created by adding components. 
+			//	So a droplist component can look like:
+			/*
+					var droplistComponent = { 
+						domElement_id:"hair-component",
+						domElement_tag: "select",
+						domElement_value: "med bob",
+					};
+			*/
+			//	Ok. But who and when will be created these entities?
+			//	Well components could be added (or replaced/removed?) in entity at select change event.
+			//	Yes but dont we need then an other system to add/replace/remove components from the entity?
+			//	And when entity created first time? How many entities will use? How many components in each
+			//	entity? And how we parse droplist entities to button click event?
+
+			//	Lets see what happend when each change event creates a droplist entity (case 1).
+
+			//	droplistSystem = new DroplistSystem();
+			//	function DroplistSystem(){
+			//		this.reset = function(entities){
+			//			while (entities.length){
+			//				entities.shift().value = "";
+			//			}
+			//		};
+			//		return this;
+			//	}
+				
+			//	Unfortunatly this don't look good example...
+
+
+			//	Lets try this: button has a system where on click event,
+			//	gets the value of #outfit-component droplist and clears
+			//	the value of the active outfit droplist.
+
+			(function(){
+
+				var entities = [];
+
+			//	Outfit Component Add/Remove Button.
+
+				var tab = TabUI.Outfit.tab;
+				var row = document.createElement("h3");
+				row.style.cssText = "height:40px;";
+
+				var button = document.createElement("div");
+				button.id = "outfit-component-btn";
+				button.textContent = "Remove Outfit Component";
+				button.style.cssText = "height:40px;font-size:large;";
+				button.classList.add( "form-control", "btn", "btn-primary", "btn-white-outline", "gradient-btn" );
+
+			//	On button click event...
+				button.addEventListener("click", function(){
+					if ( !entities.length ) return;
+
+				//	if there are entities, systems modify entities values.
+				//	When job done, entities must be deleted.
+
+				});
+
+
+				row.appendChild( button );
+				tab.appendChild( row );
+
+			})();
+
+			(function(){
+
+			//	Layer Component Add/Remove Button.
+
+				var tab = TabUI.Outfit.tab;
+				var row = document.createElement("h3");
+				row.style.cssText = "height:40px;";
+
+				var button = document.createElement("div");
+				button.id = "layer-component-btn";
+				button.textContent = "Remove Layer Component";
+				button.style.cssText = "height:40px;font-size:large;";
+				button.classList.add( "form-control", "btn", "btn-primary", "btn-white-outline", "gradient-btn" );
+
+				button.addEventListener("click", function(){
+					var select = document.getElementById("layer-component");
+				});
+
+				row.appendChild( button );
+				tab.appendChild( row );
+
+			})();
+
+			(function(){
+
+			//	Divider.
+
+				var tab = TabUI.Outfit.tab;
+				var row = document.createElement("h3");
+				var hr = document.createElement("hr");
+				hr.style.cssText = "border-top-color:#000;margin-top:30px;";
+
+				row.appendChild( hr );
+				tab.appendChild( row );
+
+			})();
+
+		</script>
+
+		<script>
+
+			(function(){
+
+			//	Hair Components.
+
+				var hatComponents = {
+					"ski":  null,
+					"witch":  null,
+					"nurse":  null,
+					"santa": null,
+					"sailor": null,
+					"indian": null,
+					"catwoman": null,
+				};
+
+				var hairComponents = {
+					"med": null,
+					"med bob": null,
+					"med shag": null,
+					"med curly": null,
+					"med bob bangs": null,
+					"med ponytail": null,
+					"bob tied": null,
+					"bob short": null,
+					"long curly": null,
+					"long parted": null,
+					"long no bangs": null,
+					"long cut bangs": null,
+					"long straight": null,
+					"long swoop bangs": null,
+					"short": null,
+					"short vic": null,
+					"short straight": null,
+					"pigtails": null,
+					"piggytail": null,
+					"big ponytail": null,
+					"french braid": null,
+					"dreads shoulder": null,
+					"oriental tied": null,
+					"punk spiky": null,
+					"punk mohawk": null,
+					"punk super spike": null,
+					"punk mohawk sides": null,
+					"wavy": null,
+				};
+
+				var tab = TabUI.Outfit.tab;
+				var row = document.createElement("h3");
+				row.textContent = "Hair";
+
+				var select = document.createElement("select");
+				select.id = "hair-component";
+				select.style.cssText = "width:180px;color:#000;float:right;"
+					+ "border:1px solid;border-radius:4px;padding:2px 4px 4px 4px;"
+					+ "font-size:20px;margin-left:10px;";
+
+			//	Hairs.
+				select.appendChild(createOption("Med"));
+				select.appendChild(createOption("Med Bob"));
+				select.appendChild(createOption("Med Shag"));
+				select.appendChild(createOption("Med Curly"));
+				select.appendChild(createOption("Med Bob Bangs"));
+				select.appendChild(createOption("Med Ponytail"));
+				select.appendChild(createOption("Bob Tied"));
+				select.appendChild(createOption("Bob Short"));
+				select.appendChild(createOption("Long Curly"));
+				select.appendChild(createOption("Long Parted"));
+				select.appendChild(createOption("Long No Bangs"));
+				select.appendChild(createOption("Long Cut Bangs"));
+				select.appendChild(createOption("Long Straight"));
+				select.appendChild(createOption("Long Swoop Bangs"));
+				select.appendChild(createOption("Short"));
+				select.appendChild(createOption("Short Vic"));
+				select.appendChild(createOption("Short Straight"));
+				select.appendChild(createOption("Pigtails"));
+				select.appendChild(createOption("Piggytail"));
+				select.appendChild(createOption("Big Ponytail"));
+				select.appendChild(createOption("French Braid"));
+				select.appendChild(createOption("Dreads Shoulder"));
+				select.appendChild(createOption("Oriental Tied"));
+				select.appendChild(createOption("Punk Spiky"));
+				select.appendChild(createOption("Punk Mohawk"));
+				select.appendChild(createOption("Punk Super Spike"));
+				select.appendChild(createOption("Punk Mohawk Sides"));
+				select.appendChild(createOption("Wavy"));
+			//	Hats.
+				select.appendChild(createOption("Ski"));
+				select.appendChild(createOption("Witch"));
+				select.appendChild(createOption("Nurse"));
+				select.appendChild(createOption("Santa"));
+				select.appendChild(createOption("Sailor"));
+				select.appendChild(createOption("Indian"));
+				select.appendChild(createOption("Catwoman"));
+
+				select.addEventListener("change", outfitDroplistEventHandler );
+
+				select.value = "";
+				row.appendChild( select );
+				tab.appendChild( row );
+
+				function createOption(name, value){
+					var option = document.createElement("option");
+					option.text = name;
+					option.value = name.toLowerCase();
+					return option;
+				}
+
+			})();
+
+		</script>
+
+		<script>
+
+			(function(){
+
+			//	Female Shoes Components.
+				
+				var shoesComponents = {
+					"shoes 01": null,
+					"shoes 02": null,
+					"shoes 03": null,
+					"shoes 04": null,
+					"shoes 05": null,
+					"shoes 06": null,
+					"shoes 07": null,
+					"shoes 08": null,
+					"shoes 09": null,
+					"shoes 10": null,
+					"shoes 11": null,
+					"shoes 12": null,
+					"shoes 13": null,
+					"shoes 14": null,
+					"shoes 15": null,
+					"shoes 16": null,
+					"shoes 17": null,
+					"shoes 18": null,
+					"shoes 19": null,
+					"shoes 20": null,
+					"shoes 21": null,
+				};
+
+				var tab = TabUI.Outfit.tab;
+				var row = document.createElement("h3");
+				row.textContent = "Shoes";
+
+				var select = document.createElement("select");
+				select.id = "shoes-component";
+				select.style.cssText = "width:180px;color:#000;float:right;"
+					+ "border:1px solid;border-radius:4px;padding:2px 4px 4px 4px;"
+					+ "font-size:20px;margin-left:10px;";
+
+				for ( var i = 1; i < 22; i++ ) {
+					(function(i){
+						var name = "Shoes ";
+						if ( i < 10 ) name += "0";
+						name += i;
+						select.appendChild(createOption(name));
+					})(i);
+				}
+
+				select.addEventListener("change", outfitDroplistEventHandler );
+
+				select.value = "";
+				row.appendChild( select );
+				tab.appendChild( row );
+
+				function createOption(name, value){
+					var option = document.createElement("option");
+					option.text = name;
+					option.value = name.toLowerCase();
+					return option;
+				}
+
+			})();
+
+			(function(){
+
+			//	Female Glasses Components.
+				
+				var glassesComponents = {
+					"mask": null,
+					"glasses 01": null,
+					"glasses 02": null,
+					"glasses 03": null,
+					"glasses 04": null,
+				};
+
+				var tab = TabUI.Outfit.tab;
+				var row = document.createElement("h3");
+				row.textContent = "Glasses";
+
+				var select = document.createElement("select");
+				select.id = "glasses-component";
+				select.style.cssText = "width:180px;color:#000;float:right;"
+					+ "border:1px solid;border-radius:4px;padding:2px 4px 4px 4px;"
+					+ "font-size:20px;margin-left:10px;";
+
+				select.appendChild(createOption("Mask"));
+				select.appendChild(createOption("Glasses 01"));
+				select.appendChild(createOption("Glasses 02"));
+				select.appendChild(createOption("Glasses 03"));
+				select.appendChild(createOption("Glasses 04"));
+
+				select.addEventListener("change", outfitDroplistEventHandler );
+
+				select.value = "";
+				row.appendChild( select );
+				tab.appendChild( row );
+
+				function createOption(name, value){
+					var option = document.createElement("option");
+					option.text = name;
+					option.value = name.toLowerCase();
+					return option;
+				}
+
+			})();
+
+		</script>
+
+		<script>
+
+			(function(){
+
+			//	Female Upperbody Clothes Components.
+				
+				var upperbodyComponents = {
+					"dress": null,
+					"tshirt": null,
+					"blazer": null,
+					"hoodie": null,
+					"corset": null,
+					"tanktop": null,
+					"cowlneck": null,
+					"elvis jacket": null,
+				};
+
+				var tab = TabUI.Outfit.tab;
+				var row = document.createElement("h3");
+				row.textContent = "Upperbody";
+
+				var select = document.createElement("select");
+				select.id = "upperbody-component";
+				select.style.cssText = "width:180px;color:#000;float:right;"
+					+ "border:1px solid;border-radius:4px;padding:2px 4px 4px 4px;"
+					+ "font-size:20px;margin-left:10px;";
+
+				select.appendChild(createOption("Dress"));
+				select.appendChild(createOption("TShirt"));
+				select.appendChild(createOption("Blazer"));
+				select.appendChild(createOption("Hoodie"));
+				select.appendChild(createOption("Corset"));
+				select.appendChild(createOption("Tanktop"));
+				select.appendChild(createOption("CowlNeck"));
+				select.appendChild(createOption("Long Coat"));
+				select.appendChild(createOption("Elvis Jacket"));
+
+				select.addEventListener("change", outfitDroplistEventHandler );
+
+				select.value = "";
+				row.appendChild( select );
+				tab.appendChild( row );
+
+				function createOption(name, value){
+					var option = document.createElement("option");
+					option.text = name;
+					option.value = name.toLowerCase();
+					return option;
+				}
+
+			})();
+
+			(function(){
+
+			//	Female Lowerbody Clothes Components.
+				
+				var lowerbodyComponents = {
+					"bootcut": null,
+					"baggy jeans": null,
+					"flare leg": null,
+					"flare bottoms": null,
+					"frilly skirt": null,
+					"mini skirt": null,
+					"long skirt": null,
+					"short skirt": null,
+					"straightleg": null,
+					"gown": null,
+				};
+
+				var tab = TabUI.Outfit.tab;
+				var row = document.createElement("h3");
+				row.textContent = "Lowerbody";
+
+				var select = document.createElement("select");
+				select.id = "lowerbody-component";
+				select.style.cssText = "width:180px;color:#000;float:right;"
+					+ "border:1px solid;border-radius:4px;padding:2px 4px 4px 4px;"
+					+ "font-size:20px;margin-left:10px;";
+
+				select.appendChild(createOption("Bootcut"));
+				select.appendChild(createOption("Baggy Jeans"));
+				select.appendChild(createOption("Flare Leg"));
+				select.appendChild(createOption("Flare Bottoms"));
+				select.appendChild(createOption("Frilly Skirt"));
+				select.appendChild(createOption("Mini Skirt"));
+				select.appendChild(createOption("Long Skirt"));
+				select.appendChild(createOption("Short Skirt"));
+				select.appendChild(createOption("Straightleg"));
+				select.appendChild(createOption("Gown"));
+
+				select.addEventListener("change", outfitDroplistEventHandler );
+
+				select.value = "";
+				row.appendChild( select );
+				tab.appendChild( row );
+
+				function createOption(name, value){
+					var option = document.createElement("option");
+					option.text = name;
+					option.value = name.toLowerCase();
+					return option;
+				}
+
+			})();
+
+			(function(){
+
+			//	Divider.
+
+				var tab = TabUI.Outfit.tab;
+				var row = document.createElement("h3");
+				var hr = document.createElement("hr");
+				hr.style.cssText = "border-top-color:#000;margin-top:30px;";
+
+				row.appendChild( hr );
+				tab.appendChild( row );
+
+			})();
+
+		</script>
+
+	</body>
+</html>
