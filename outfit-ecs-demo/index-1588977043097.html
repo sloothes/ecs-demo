@@ -208,15 +208,16 @@
 					debugMode && console.log( string, string == component_string );
 					return (string == component_string);
 				};
-			
+
+			//	we return "this" to allow chain multiple calls in 
 				OutfitManagementSystem.prototype.push = function(entity){
 					if ( this._validate(entity) ) this.entities.push(entity);
-					return this; //	allow multiple calls of the system in chain.
+					return this;
 				};
 
 				OutfitManagementSystem.prototype.unshift = function(entity){
 					if ( this._validate(entity) ) this.entities.unshift(entity);
-					return this; //	allow multiple calls of the system in chain.
+					return this;
 				};
 
 				OutfitManagementSystem.prototype.move = function(old_index, new_index){
@@ -230,7 +231,7 @@
 
 					this.entities.splice(new_index, 0, this.entities.splice(old_index, 1)[0]);
 
-					return this; //	allow multiple calls of the system in chain.
+					return this;
 				};
 
 				OutfitManagementSystem.prototype.move_negative = function(old_index, new_index){
@@ -252,7 +253,7 @@
 
 					this.entities.splice(new_index, 0, this.entities.splice(old_index, 1)[0]);
 
-					return this; //	allow multiple calls of the system in chain.
+					return this;
 				};
 
 			//	We have the gender, body, hair, shoes, glasses, upperbody and lowerbody components.
@@ -275,7 +276,7 @@
 						(function(entity){
 							dressComponentUpdate(entity.components);
 						//	At the end update droplists.
-							componentDroplistsUpdate(entity.components);
+							updateComponentDroplists(entity.components);
 						})( this.entities.shift() );
 					}
 				};
@@ -285,7 +286,7 @@
 				//	document.getElementById("lowerbody-component").value = components.lowerbody.value; // update droplist
 				}
 
-				function componentDroplistsUpdate(components){
+				function updateComponentDroplists(components){
 					document.getElementById("gender-component").value = components.gender.value;
 					document.getElementById("hair-component").value = components.hair.value;
 					document.getElementById("shoes-component").value = components.shoes.value;
